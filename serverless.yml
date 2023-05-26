@@ -1,0 +1,72 @@
+service: aplicacao-serverless
+frameworkVersion: '3'
+
+# Ver readme para detalhes #
+provider:
+  # Dados do provedor de Cloud - no caso AWS #
+  name: aws
+  runtime: nodejs18.x
+  region: us-east-1
+
+  # Configurando as permissões da Role para o Dynamo db no IAM #
+  iam:
+    role:
+        statements:
+          - Effect: Allow
+            Action:
+              - dynamodb:PutItem
+              - dynamodb:UpdateItem
+              - dynamodb:GetItem
+              - dynamodb:scan
+            Resource:
+              - arn:aws:dynamodb:us-east-1:020164141565:table/TabelaBombom
+
+# Aqui configuramos os eventos de chamada do AWS API Gateway HTTP para as funções lambda #
+# e atribuimos os respectivos caminhos para as funçoes typescript a serem executadas na chamada #
+functions:
+  api:
+    handler: src/index.handler
+    events:
+      - httpApi:
+          path: /
+          method: get
+  insertItem:
+    handler: src/insertItem.handler
+    events:
+      - httpApi:
+          path: /item
+          method: post
+  listItems:
+    handler: src/listItems.handler
+    events:
+      - httpApi:
+          path: /items
+          method: get
+  fetchoneItem:
+    handler: src/fetchoneItem.handler
+    events:
+      - httpApi:
+          path: /items/{idBombom}
+          method: get
+  updateItem:
+    handler: src/updateItem.handler
+    events:
+      - http:
+          path: /items/{idBombom}
+          method: put
+
+# Aqui criamos e configuramos a tabela do Dynamo db que vai interagir com nossas funções lambda#
+resources:
+  Resources:
+    TabelaBombom:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: TabelaBombom
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: idBombom
+            AttributeType: S
+        KeySchema:
+          - AttributeName: idBombom
+            KeyType: HASH
+# No deploy, deve ser fornecido no terminal os endereços dos endpoints para testarmos no Postman #
